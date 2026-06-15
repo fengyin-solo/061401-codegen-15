@@ -1,6 +1,6 @@
 import { ref, computed, watch } from 'vue'
-import type { GameState, LogEntry, RandomEvent, ActionType, ActionEffect } from '@/types/game'
-import { randomEvents } from '@/data/events'
+import type { GameState, LogEntry, RandomEvent, ActionType, ActionEffect, DesperateGambleResult } from '@/types/game'
+import { randomEvents, desperateGambleSuccessEvents, desperateGambleFailEvents } from '@/data/events'
 
 const STORAGE_KEY_HIGH_SCORE = 'survival_game_high_score'
 const MAX_STAT = 100
@@ -21,7 +21,11 @@ const actionNames: Record<ActionType, string> = {
   gatherStone: '采集石头',
   hunt: '打猎',
   drink: '喝水',
+  desperateGamble: '孤注一掷',
 }
+
+const DESPERATE_GAMBLE_THRESHOLD = 20
+const DESPERATE_GAMBLE_BASE_SUCCESS_RATE = 0.4
 
 export function useGame() {
   const state = ref<GameState>({
@@ -39,6 +43,21 @@ export function useGame() {
   let logIdCounter = 0
 
   const canAct = computed(() => !state.value.isGameOver)
+
+  const isDesperate = computed(() => {
+    if (state.value.isGameOver) return false
+    const healthLow = state.value.health <= DESPERATE_GAMBLE_THRESHOLD
+    const resourcesLow = state.value.wood + state.value.stone <= DESPERATE_GAMBLE_THRESHOLD
+    const statsCritical = state.value.hunger >= MAX_STAT - DESPERATE_GAMBLE_THRESHOLD || state.value.thirst >= MAX_STAT - DESPERATE_GAMBLE_THRESHOLD
+    return healthLow || resourcesLow || statsCritical
+  })
+
+  const desperateGambleSuccessRate = computed(() => {
+    let rate = DESPERATE_GAMBLE_BASE_SUCCESS_RATE
+    if (state.value.health <= 10) rate += 0.15
+    if (state.value.hunger >= 90 || state.value.thirst >= 90) rate += 0.1
+    return Math.min(0.75, rate)
+  })
 
   function loadHighScore() {
     try {
@@ -155,6 +174,36 @@ export function useGame() {
     performAction('drink')
   }
 
+  function performDesperateGamble(): DesperateGambleResult {
+    if (!isDesperate.value || state.value.isGameOver) {
+      throw new Error('不满足孤注一掷条件')
+    }
+
+    const success = Math.random() < desperateGambleSuccessRate.value
+    const eventPool = success ? desperateGambleSuccessEvents : desperateGambleFailEvents
+    const index = Math.floor(Math.random() * eventPool.length)
+    const event = eventPool[index]
+
+    state.value.turn++
+
+    addLog(`第 ${state.value.turn} 回合：${success ? '孤注一掷成功！' : '孤注一掷失败！'}`, success ? 'good' : 'bad')
+    addLog(event.text, success ? 'good' : 'bad')
+
+    applyEffects(event.effects)
+
+    checkGameOver()
+
+    return {
+      success,
+      event,
+      effects: event.effects,
+    }
+  }
+
+  function desperateGamble() {
+    performDesperateGamble()
+  }
+
   function restart() {
     state.value = {
       health: 80,
@@ -178,10 +227,13 @@ export function useGame() {
     highScore,
     canAct,
     canPerformAction,
+    isDesperate,
+    desperateGambleSuccessRate,
     gatherWood,
     gatherStone,
     hunt,
     drink,
+    desperateGamble,
     restart,
   }
 }

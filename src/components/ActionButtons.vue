@@ -14,6 +14,8 @@ interface Props {
   canGatherStone: boolean
   canHunt: boolean
   canDrink: boolean
+  isDesperate: boolean
+  desperateSuccessRate: number
   disabled: boolean
 }
 
@@ -24,6 +26,7 @@ const emit = defineEmits<{
   gatherStone: []
   hunt: []
   drink: []
+  desperateGamble: []
 }>()
 
 const buttons: ActionButton[] = [
@@ -92,5 +95,57 @@ const buttons: ActionButton[] = [
         <span class="text-gray-400 text-xs">{{ btn.description }}</span>
       </button>
     </div>
+
+    <Transition name="desperate">
+      <div
+        v-if="isDesperate && !disabled"
+        class="mt-5 p-4 rounded-xl border-2 border-red-500/60 bg-red-950/40 backdrop-blur-sm animate-pulse-slow"
+      >
+        <div class="flex items-center gap-2 mb-3">
+          <span class="text-2xl">🔥</span>
+          <span class="text-red-400 font-bold">危险！孤注一掷已解锁</span>
+        </div>
+        <p class="text-gray-300 text-xs mb-3">
+          你的处境非常危险，可以尝试孤注一掷寻找转机。成功率：
+          <span class="text-yellow-400 font-bold">{{ Math.round(desperateSuccessRate * 100) }}%</span>
+        </p>
+        <button
+          @click="emit('desperateGamble')"
+          class="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-500 hover:to-orange-500 text-white font-bold transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-red-900/50 border border-red-400/30"
+        >
+          <span class="flex items-center justify-center gap-2">
+            <span>🎲</span>
+            <span>孤注一掷</span>
+            <span>🎲</span>
+          </span>
+        </button>
+      </div>
+    </Transition>
   </div>
 </template>
+
+<style scoped>
+.desperate-enter-active,
+.desperate-leave-active {
+  transition: all 0.4s ease-out;
+}
+
+.desperate-enter-from,
+.desperate-leave-to {
+  opacity: 0;
+  transform: translateY(-10px) scale(0.95);
+}
+
+@keyframes pulse-slow {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(239, 68, 68, 0.2);
+  }
+  50% {
+    box-shadow: 0 0 30px rgba(239, 68, 68, 0.4);
+  }
+}
+
+.animate-pulse-slow {
+  animation: pulse-slow 2s ease-in-out infinite;
+}
+</style>

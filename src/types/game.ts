@@ -29,7 +29,13 @@ export interface RandomEvent {
   }
 }
 
-export type ActionType = 'gatherWood' | 'gatherStone' | 'hunt' | 'drink'
+export type ActionType = 'gatherWood' | 'gatherStone' | 'hunt' | 'drink' | 'desperateGamble'
+
+export interface DesperateGambleResult {
+  success: boolean
+  event: RandomEvent
+  effects: ActionEffect
+}
 
 export interface ActionEffect {
   health?: number
