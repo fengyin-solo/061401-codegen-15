@@ -1,5 +1,5 @@
 import { ref, computed, watch } from 'vue'
-import type { GameState, LogEntry, RandomEvent, ActionType, ActionEffect, DesperateGambleResult } from '@/types/game'
+import type { GameState, LogEntry, RandomEvent, ActionType, ActionEffect, DesperateGambleResult, GambleResultDisplay } from '@/types/game'
 import { randomEvents, desperateGambleSuccessEvents, desperateGambleFailEvents } from '@/data/events'
 
 const STORAGE_KEY_HIGH_SCORE = 'survival_game_high_score'
@@ -42,7 +42,16 @@ export function useGame() {
   const highScore = ref<number>(0)
   let logIdCounter = 0
 
-  const canAct = computed(() => !state.value.isGameOver)
+  const gambleResult = ref<GambleResultDisplay>({
+    show: false,
+    success: false,
+    eventText: '',
+    successRate: 0,
+    statsBefore: { health: 0, hunger: 0, thirst: 0, wood: 0, stone: 0 },
+    statsAfter: { health: 0, hunger: 0, thirst: 0, wood: 0, stone: 0 },
+  })
+
+  const canAct = computed(() => !state.value.isGameOver && !gambleResult.value.show)
 
   const isDesperate = computed(() => {
     if (state.value.isGameOver) return false
@@ -175,11 +184,20 @@ export function useGame() {
   }
 
   function performDesperateGamble(): DesperateGambleResult {
-    if (!isDesperate.value || state.value.isGameOver) {
+    if (!isDesperate.value || state.value.isGameOver || gambleResult.value.show) {
       throw new Error('不满足孤注一掷条件')
     }
 
-    const success = Math.random() < desperateGambleSuccessRate.value
+    const statsBefore = {
+      health: state.value.health,
+      hunger: state.value.hunger,
+      thirst: state.value.thirst,
+      wood: state.value.wood,
+      stone: state.value.stone,
+    }
+
+    const currentSuccessRate = desperateGambleSuccessRate.value
+    const success = Math.random() < currentSuccessRate
     const eventPool = success ? desperateGambleSuccessEvents : desperateGambleFailEvents
     const index = Math.floor(Math.random() * eventPool.length)
     const event = eventPool[index]
@@ -193,6 +211,21 @@ export function useGame() {
 
     checkGameOver()
 
+    gambleResult.value = {
+      show: true,
+      success,
+      eventText: event.text,
+      successRate: currentSuccessRate,
+      statsBefore,
+      statsAfter: {
+        health: state.value.health,
+        hunger: state.value.hunger,
+        thirst: state.value.thirst,
+        wood: state.value.wood,
+        stone: state.value.stone,
+      },
+    }
+
     return {
       success,
       event,
@@ -202,6 +235,10 @@ export function useGame() {
 
   function desperateGamble() {
     performDesperateGamble()
+  }
+
+  function closeGambleResult() {
+    gambleResult.value.show = false
   }
 
   function restart() {
@@ -214,6 +251,14 @@ export function useGame() {
       turn: 0,
       isGameOver: false,
       logs: [],
+    }
+    gambleResult.value = {
+      show: false,
+      success: false,
+      eventText: '',
+      successRate: 0,
+      statsBefore: { health: 0, hunger: 0, thirst: 0, wood: 0, stone: 0 },
+      statsAfter: { health: 0, hunger: 0, thirst: 0, wood: 0, stone: 0 },
     }
     logIdCounter = 0
     addLog('你醒来发现自己身处荒野中，需要想办法生存下去...', 'system')
@@ -229,11 +274,13 @@ export function useGame() {
     canPerformAction,
     isDesperate,
     desperateGambleSuccessRate,
+    gambleResult,
     gatherWood,
     gatherStone,
     hunt,
     drink,
     desperateGamble,
+    closeGambleResult,
     restart,
   }
 }

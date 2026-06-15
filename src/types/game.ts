@@ -37,6 +37,36 @@ export interface DesperateGambleResult {
   effects: ActionEffect
 }
 
+export interface StatChange {
+  label: string
+  icon: string
+  before: number
+  after: number
+  change: number
+  color: string
+}
+
+export interface GambleResultDisplay {
+  show: boolean
+  success: boolean
+  eventText: string
+  successRate: number
+  statsBefore: {
+    health: number
+    hunger: number
+    thirst: number
+    wood: number
+    stone: number
+  }
+  statsAfter: {
+    health: number
+    hunger: number
+    thirst: number
+    wood: number
+    stone: number
+  }
+}
+
 export interface ActionEffect {
   health?: number
   hunger?: number

@@ -4,9 +4,10 @@ import StatusPanel from '@/components/StatusPanel.vue'
 import ActionButtons from '@/components/ActionButtons.vue'
 import EventLog from '@/components/EventLog.vue'
 import GameOverModal from '@/components/GameOverModal.vue'
+import GambleResultModal from '@/components/GambleResultModal.vue'
 import { useGame } from '@/composables/useGame'
 
-const { state, highScore, canPerformAction, isDesperate, desperateGambleSuccessRate, gatherWood, gatherStone, hunt, drink, desperateGamble, restart } = useGame()
+const { state, highScore, canPerformAction, isDesperate, desperateGambleSuccessRate, gambleResult, gatherWood, gatherStone, hunt, drink, desperateGamble, closeGambleResult, restart } = useGame()
 
 const isNewRecord = computed(() => state.value.turn >= highScore.value && state.value.turn > 0)
 </script>
@@ -74,6 +75,16 @@ const isNewRecord = computed(() => state.value.turn >= highScore.value && state.
         <p>💡 提示：生命值归零或饥饿/口渴值满格则游戏结束</p>
       </footer>
     </div>
+
+    <GambleResultModal
+      :show="gambleResult.show"
+      :success="gambleResult.success"
+      :event-text="gambleResult.eventText"
+      :success-rate="gambleResult.successRate"
+      :stats-before="gambleResult.statsBefore"
+      :stats-after="gambleResult.statsAfter"
+      @close="closeGambleResult"
+    />
 
     <GameOverModal
       :show="state.isGameOver"
